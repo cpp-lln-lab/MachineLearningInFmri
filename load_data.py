@@ -33,13 +33,13 @@ def get_masks(id_subjects, folder_name, plot=False, is_from_mohamed=False):
       @:param : folder_name is the folder where the maps are stored"""
 
     masks_names = ['V5_R', 'V5_L', 'PT_R', 'PT_L']
-    masks = [dict() for _ in range(len(id_subjects))]
-    masks_exist = [dict() for _ in range(len(id_subjects))]
+    masks = [{} for _ in range(len(id_subjects))]
+    masks_exist = [{} for _ in range(len(id_subjects))]
 
     for i, identity in enumerate(id_subjects):
         ide = str(identity)
         if identity <= 9:
-            ide = "0" + ide
+            ide = f"0{ide}"
 
         for name in masks_names:
             underscore = "" if is_from_mohamed else "_"
@@ -59,8 +59,8 @@ def get_masks(id_subjects, folder_name, plot=False, is_from_mohamed=False):
 def load_full_data(subjects_ids, n_classes, nb_runs, maps_folder="brain_maps", masks_folder="masks",
                    is_from_mohamed=False, use_t_maps=True):
     length_one_modality = n_classes*nb_runs
-    maps_masked = [dict() for _ in subjects_ids]
-    masks_exist = [dict() for _ in subjects_ids]
+    maps_masked = [{} for _ in subjects_ids]
+    masks_exist = [{} for _ in subjects_ids]
     for i, subj_id in enumerate(subjects_ids):
         t_maps, beta_maps = get_maps([subj_id], maps_folder, is_from_mohamed)
         masks, masks_present = get_masks([subj_id], folder_name=masks_folder, plot=False, is_from_mohamed=is_from_mohamed)
@@ -131,9 +131,7 @@ def retrieve_bootstrap_metric(out_directory, metric, only_within = False):
 
 
 def retrieve_masks_exist(out_directory):
-    bootstrap_within_df = pd.read_csv(out_directory + "masks_exist.csv", index_col=0)
-
-    return bootstrap_within_df
+    return pd.read_csv(out_directory + "masks_exist.csv", index_col=0)
 
 
 def retrieve_pvals(out_directory, default_keys=None):
@@ -141,9 +139,9 @@ def retrieve_pvals(out_directory, default_keys=None):
     if my_file.is_file():
         df = pd.read_csv(out_directory + "estimated_pval_bootstrap.csv", index_col=0)
         return df.to_dict('records')[0]
-    else :
+    else:
         print("No p-values found in directory : "+out_directory)
-        return dict((key, 1) for key in default_keys)
+        return {key: 1 for key in default_keys}
 
 
 def change_maps_masked_org(maps_masked, subjects_ids, n_classes, nb_runs):
@@ -162,7 +160,7 @@ def change_maps_masked_org(maps_masked, subjects_ids, n_classes, nb_runs):
 
 
 def change_confusion_matrixes_org(cfm, subjects_ids, model_names):
-    new_cfm = {name:[dict() for _ in subjects_ids] for name in model_names}
+    new_cfm = {name: [{} for _ in subjects_ids] for name in model_names}
     for i, subj_id in enumerate(subjects_ids):
         for modality in cfm[i]:
             for name in model_names:
@@ -171,7 +169,11 @@ def change_confusion_matrixes_org(cfm, subjects_ids, model_names):
 
 
 def change_cfm_bootstrap_org(cfm, subjects_ids, model_names, n_single_perm):
-    new_cfm = {name:[[dict() for _ in range(n_single_perm)] for _ in subjects_ids] for name in model_names}
+    new_cfm = {
+        name: [[{} for _ in range(n_single_perm)] for _ in subjects_ids]
+        for name in model_names
+    }
+
     for i, subj_id in enumerate(subjects_ids):
         for j in range(n_single_perm):
             for modality in cfm[i][j]:

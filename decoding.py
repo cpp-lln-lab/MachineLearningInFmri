@@ -56,7 +56,7 @@ class Decoder:
         :return: the sum of confusion matrixes obtained in each fold """
 
         conf_matrix = {name : np.zeros((self.n_classes, self.n_classes)) for name in self.models}
-        validation_scores = dict((name, list()) for name in self.models)
+        validation_scores = {name: [] for name in self.models}
         for indi in range(self.n_splits):
             test_i = list(range(indi*self.n_classes, (indi+1)*self.n_classes))
             #for indj in range(indi+1, self.n_splits):
@@ -79,7 +79,7 @@ class Decoder:
             if self.sm_kn > 1 and self.sm_samples > 1:
                 sm = SMOTE(sampling_strategy={'Up': self.sm_samples, 'Down': self.sm_samples, 'Right': self.sm_samples, 'Left': self.sm_samples}, random_state=0, k_neighbors=self.sm_kn)
                 X_train, y_train = sm.fit_resample(X_train, y_train)
-                
+
             for name in self.models:
                 model = self.models[name]
                 model.fit(X_train, y_train)
@@ -92,23 +92,22 @@ class Decoder:
                     val_results = model.cv_results_
                     val_params = [str(elem).replace(" ","").replace(":","=").replace("\'","").replace("{","").replace("}","").replace(",","-") for elem in val_results['params']]
                     l = [str(i) for i in range(len(model.cv))]
-                    keys = ['split'+i+'_test_score' for i in l]
+                    keys = [f'split{i}_test_score' for i in l]
                     tab = [val_results[key] for key in keys]
                     means = np.mean(tab, axis=0)
                     val_scores = dict(zip(val_params, means.tolist()))
                     validation_scores[name].append(val_scores)
-                else :
+                else:
                     validation_scores[name].append(0)
 
         for name in self.models:
             validation_scores[name] = average_dicos(validation_scores[name])
 
-        if return_model:
-            for name in self.models:
-                self.models[name].fit(brain_map, labels)  # re-fitting the model on all data
-            return conf_matrix, validation_scores, self.models
-        else:
+        if not return_model:
             return conf_matrix, validation_scores
+        for name in self.models:
+            self.models[name].fit(brain_map, labels)  # re-fitting the model on all data
+        return conf_matrix, validation_scores, self.models
 
     def p_value_random_permutations(self, brain_map, labels, base_score):
         """ Attention, this function is based on labels with consecutive, balanced categories, like ['U','D','R','L',
@@ -158,24 +157,24 @@ class Decoder:
         :param do_pval: boolean to tell if it is needed to estimate a p-value
         :return: One dictionary with cross-validation scores for the different experiment-mask combo,
                 and another dictionary with the corresponding p-values """
-        p_values = dict()
-        conf_matrixes = dict()
-        conf_matrixes_perms = dict()
-        val_scores = dict()
+        p_values = {}
+        conf_matrixes = {}
+        conf_matrixes_perms = {}
+        val_scores = {}
 
         for task_name in tasks_names:
             for region_name in regions_names:
                 if self.masks_exist[id_subj][region_name]:
                     _maps = [maps[region_name] for maps in brain_maps[task_name]]
-                    key = task_name + "_" + region_name
+                    key = f"{task_name}_{region_name}"
                     p_values[key], conf_matrixes[key], conf_matrixes_perms[key], val_scores[key] = self.classify(_maps, labels[task_name], do_pval)
 
         return p_values, conf_matrixes, conf_matrixes_perms, val_scores
 
     def within_modality_decoding(self, maps, labels, subjects_ids, tasks_regions):
         start_time = time.time()
-        conf_matrixes = [dict() for _ in subjects_ids]
-        val_scores = [dict() for _ in subjects_ids]
+        conf_matrixes = [{} for _ in subjects_ids]
+        val_scores = [{} for _ in subjects_ids]
         for i, subj_id in enumerate(subjects_ids):
             # within-modality decoding : training on a task and decoding on other samples from same task
             for tasks, regions in tasks_regions:
@@ -184,10 +183,15 @@ class Decoder:
                 val_scores[i].update(vs)
             # print("Within-modality decoding done for subject "+str(subj_id)+"/"+str(len(subjects_ids)))
             duration = time.time()-start_time
-            if self.verbose > 1 : print("subject "+str(subj_id)+"/"+str(len(subjects_ids))+" done in "+str(duration)+" seconds")
+            if self.verbose > 1:
+                print(
+                    f"subject {str(subj_id)}/{len(subjects_ids)} done in {str(duration)} seconds"
+                )
+
 
         duration = time.time()-start_time
-        if self.verbose > 0 : print("done in "+str(duration)+" seconds")
+        if self.verbose > 0:
+            print(f"done in {str(duration)} seconds")
         return conf_matrixes, val_scores
 
     def unary_cross_modal_CV_decoding(self, brain_maps, labels, tasks_names, regions_names, id_subj):
@@ -200,8 +204,8 @@ class Decoder:
                 for the different brain regions """
 
         def sub(task_order):
-            conf_matrix = dict()
-            val_scores = dict()
+            conf_matrix = {}
+            val_scores = {}
             key = "cross_"
             for region_name in regions_names:
                 if self.masks_exist[id_subj][region_name] :
@@ -240,7 +244,7 @@ class Decoder:
                 for the different brain regions """
 
         def sub(task_order):
-            conf_matrix = {name:dict() for name in self.models}
+            conf_matrix = {name: {} for name in self.models}
             key = "cross_"
             for region_name in regions_names:
                 if self.masks_exist[id_subj][region_name] :
@@ -257,19 +261,19 @@ class Decoder:
                             predictions = self.model[name].predict(map_1)
                             conf_matrix[name][key + region_name] = confusion_matrix(labels[task_order[1]], predictions)
             return conf_matrix
-            
+
         cfm_0 = sub(tasks_names)
         cfm_1 = sub(tasks_names[::-1])
         for name in self.models:
             for key in cfm_0:
                 cfm_0[name][key] += cfm_1[name][key]
-        
+
         return cfm_0
 
     def cross_modality_decoding(self, maps, labels, subjects_ids, tasks_regions):
         start_time = time.time()
-        cross_conf_matrixes = [dict() for _ in subjects_ids]
-        val_scores = [dict() for _ in subjects_ids]
+        cross_conf_matrixes = [{} for _ in subjects_ids]
+        val_scores = [{} for _ in subjects_ids]
 
         for i, subj_id in enumerate(subjects_ids):
             # cross-modal decoding : training on a task and decoding on samples from another task
@@ -278,10 +282,15 @@ class Decoder:
                 cross_conf_matrixes[i].update(cross_cf)
                 val_scores[i].update(cross_vs)
             duration = time.time()-start_time
-            if self.verbose > 1 : print("subject "+str(subj_id)+"/"+str(len(subjects_ids))+" done in "+str(duration)+" seconds")
+            if self.verbose > 1:
+                print(
+                    f"subject {str(subj_id)}/{len(subjects_ids)} done in {str(duration)} seconds"
+                )
+
 
         duration = time.time()-start_time
-        if self.verbose > 0 : print("done in "+str(duration)+" seconds")
+        if self.verbose > 0:
+            print(f"done in {str(duration)} seconds")
         return cross_conf_matrixes, val_scores
 
     def produce_permuted_labels(self, labels, n_perm):
@@ -304,7 +313,7 @@ class Decoder:
         for i in range(n_subjects):
             labels_shuffled_vis = self.produce_permuted_labels(labels, n_single_perm) # repeating for each subject, such that we don't obtain same permutations
             labels_shuffled_aud = self.produce_permuted_labels(labels, n_single_perm)
-            cfm_dicts = [dict() for _ in range(n_single_perm)]
+            cfm_dicts = [{} for _ in range(n_single_perm)]
             for j in range(n_single_perm) :
                 labels_dico = {"vis" : labels_shuffled_vis[j], "aud" : labels_shuffled_aud[j]}
                 for task_regions in tasks_regions :
@@ -317,8 +326,8 @@ class Decoder:
 
             cfm_n_perm[i] = cfm_dicts
 
-            if self.verbose > 0 :
+            if self.verbose > 0:
                 duration = time.time()-start_time
-                print(str(i+1)+"/"+str(n_subjects)+" subjects in "+str(duration)+" seconds")
+                print(f"{str(i + 1)}/{str(n_subjects)} subjects in {str(duration)} seconds")
 
         return cfm_n_perm
