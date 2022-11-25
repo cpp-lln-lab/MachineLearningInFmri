@@ -23,8 +23,8 @@ def create_directory(dir_name):
 
 
 def average_dicos(dicos):
-    dico = dict()
-    counter = dict()
+    dico = {}
+    counter = {}
     for key in dicos[0]:
         counter[key] = 0
         dico[key] = 0
@@ -43,18 +43,18 @@ def compute_bootstrap_distribution(n_bootstrap, n_subjects, scores_n_perm, n_sin
 
     scores_bootstrap = [None] * n_bootstrap
     for i in range(n_bootstrap):
-        dicos = [dict() for _ in range(n_subjects)]
+        dicos = [{} for _ in range(n_subjects)]
         for j in range(n_subjects):
             dicos[j] = scores_n_perm[j][random.randint(0, n_single_perm - 1)]
         scores_bootstrap[i] = average_dicos(dicos)
 
     duration = time.time() - start_time
-    print("Running models done in " + str(duration) + " seconds")
+    print(f"Running models done in {str(duration)} seconds")
     return scores_bootstrap
 
 
 def compute_p_val_bootstrap(df_bootstrap, df_group_results):
-    pvals = dict()
+    pvals = {}
     for modality in df_bootstrap:
         gv = df_group_results[modality][0]
         count = len([v for v in df_bootstrap[modality] if v > gv])
@@ -89,7 +89,7 @@ def verbose_dataframe(df, subjects_ids, compare=False, anova=False):
 
         for i in subjects_ids:
             if df[entry][i]:
-                new_entry = dict()
+                new_entry = {}
                 if compare:
                     new_entry["Analysis"] = analysis
                 else:
@@ -116,12 +116,12 @@ def cfm_string_to_matrix(cfm_string):
 
 
 def compute_group_confusion_matrix(df_cf_matrixes, subjects_ids):
-    group_cf = dict()
+    group_cf = {}
     for modality in df_cf_matrixes:
         n_of_nans = df_cf_matrixes[modality].isnull().sum()
         gcf = np.zeros((4, 4, len(subjects_ids) - n_of_nans))
         l = 0
-        for i, subj_id in enumerate(subjects_ids):
+        for subj_id in subjects_ids:
             cfm = cfm_string_to_matrix(df_cf_matrixes[modality][subj_id])
             if not pd.isna(cfm[0][0]):
                 cfm = cfm / np.sum(cfm) * 400

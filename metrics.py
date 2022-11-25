@@ -6,7 +6,7 @@ from utility import cfm_string_to_matrix
 
 def compute_metric(filename, subjects_ids, metric, mode, masks_exist, n_classes, ret = False):
     confusion_matrixes = pd.read_csv(filename+"confusion_matrixes_"+mode+".csv", index_col=0)
-    score = [dict() for _ in subjects_ids] 
+    score = [{} for _ in subjects_ids]
     for modality in confusion_matrixes:
         for i, subj_id in enumerate(subjects_ids):
             spl = modality.split("_")
@@ -21,7 +21,7 @@ def compute_metric(filename, subjects_ids, metric, mode, masks_exist, n_classes,
 def compute_accuracy_bootstrap(n_subjects, n_single_perm, confusion_matrixes_bootstrap, n_classes):
     scores = [0]*n_subjects
     for i in range(n_subjects):
-        scores[i] = [dict() for _ in range(n_single_perm)]
+        scores[i] = [{} for _ in range(n_single_perm)]
         for j in range(n_single_perm):
             cfm_bootstrap = confusion_matrixes_bootstrap[i][j]
             for modality in cfm_bootstrap:
@@ -36,14 +36,17 @@ def compute_accuracy_variance(filename, mode):
 
 
 def accuracy(confusion_matrix, n_classes):
-    sum_Tis = sum([confusion_matrix[i][i] for i in range(n_classes)])
+    sum_Tis = sum(confusion_matrix[i][i] for i in range(n_classes))
     return sum_Tis/np.sum(confusion_matrix)
 
 
 def recall(confusion_matrix, n_classes):
     recall = [0]*n_classes
     for i in range(n_classes):
-        recall[i] = confusion_matrix[i][i]/sum([confusion_matrix[j][i] for j in range(n_classes)])
+        recall[i] = confusion_matrix[i][i] / sum(
+            confusion_matrix[j][i] for j in range(n_classes)
+        )
+
     return recall
 
 

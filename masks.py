@@ -9,7 +9,7 @@ def apply_mask_to_maps(maps, masks, masks_exist):
             where the keys are the names of the masks, and the value the nifti mask """
 
     n_subjects = len(maps)
-    maps_masked = [dict() for _ in range(n_subjects)]
+    maps_masked = [{} for _ in range(n_subjects)]
 
     for i, mask_dict in enumerate(masks):
         for mask in mask_dict:
@@ -22,7 +22,7 @@ def apply_mask_to_maps(maps, masks, masks_exist):
 def get_part_of_maps(maps, start_index, end_index, masks_exist):
     """  returns the maps where only keep samples from start_index to end_index
     @maps : list (size n_subjects) of dictionaries (keys are types of masks), which contain n_samples maps """
-    maps_sliced = [dict() for _ in range(len(maps))]
+    maps_sliced = [{} for _ in range(len(maps))]
     for i in range(len(maps)):
         for mask_type in maps[i]:
             if masks_exist[i][mask_type]:
